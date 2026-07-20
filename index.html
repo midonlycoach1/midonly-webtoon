@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>중학생활 웹툰</title>
+  <style>
+    :root { --bg:#111; --panel:#1d1d1f; --text:#fff; --muted:#aaa; }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+    button{font:inherit}
+    .top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:rgba(17,17,17,.92);backdrop-filter:blur(10px);border-bottom:1px solid #333}
+    .title{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .controls{display:flex;gap:6px}
+    .btn{border:1px solid #444;background:#222;color:#fff;border-radius:999px;padding:8px 11px;cursor:pointer}
+    .btn.active{background:#fff;color:#111}
+    .status{padding:8px 12px;text-align:center;color:var(--muted);font-size:14px}
+    .viewer{max-width:720px;margin:0 auto}
+    .scroll-mode img{display:block;width:100%;height:auto;margin:0}
+    .card-wrap{min-height:calc(100vh - 104px);display:grid;place-items:center;padding:10px 10px 80px}
+    .card-wrap img{display:block;max-width:100%;max-height:calc(100vh - 130px);width:auto;height:auto;object-fit:contain;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.35)}
+    .nav{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;gap:10px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(17,17,17,.92);backdrop-filter:blur(10px);border-top:1px solid #333}
+    .nav button{min-width:110px}
+    .hidden{display:none!important}
+    .empty{max-width:680px;margin:50px auto;padding:24px;line-height:1.75;background:var(--panel);border-radius:16px}
+    code{background:#2b2b2b;padding:2px 6px;border-radius:5px}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="title">중학생활 웹툰</div>
+    <div class="controls">
+      <button id="cardBtn" class="btn active">컷 보기</button>
+      <button id="scrollBtn" class="btn">세로 보기</button>
+    </div>
+  </header>
+  <div id="status" class="status">이미지를 찾는 중...</div>
+  <main id="app" class="viewer"></main>
+  <nav id="nav" class="nav hidden">
+    <button id="prevBtn" class="btn">이전 컷</button>
+    <button id="nextBtn" class="btn">다음 컷</button>
+  </nav>
+<script>
+(() => {
+  const MAX_IMAGES = 200;
+  const EXTENSIONS = ['png','jpg','jpeg','webp'];
+  const app = document.getElementById('app');
+  const status = document.getElementById('status');
+  const nav = document.getElementById('nav');
+  const cardBtn = document.getElementById('cardBtn');
+  const scrollBtn = document.getElementById('scrollBtn');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  let images = [];
+  let index = Math.max(0, Number(localStorage.getItem('webtoon-last-cut') || 0));
+  let mode = localStorage.getItem('webtoon-mode') || 'card';
+
+  function exists(src){
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => resolve(src);
+      img.onerror = () => resolve(null);
+      img.src = src + '?v=' + Date.now();
+    });
+  }
+
+  async function discover(){
+    const found=[];
+    let misses=0;
+    for(let i=1;i<=MAX_IMAGES;i++){
+      const names=[String(i).padStart(2,'0'), String(i).padStart(3,'0'), String(i)];
+      let hit=null;
+      for(const name of names){
+        const candidates=EXTENSIONS.map(ext=>`images/${name}.${ext}`);
+        const results=await Promise.all(candidates.map(exists));
+        hit=results.find(Boolean);
+        if(hit) break;
+      }
+      if(hit){found.push(hit); misses=0;}
+      else {misses++; if(found.length && misses>=3) break;}
+    }
+    return found;
+  }
+
+  function updateButtons(){
+    prevBtn.disabled=index<=0;
+    nextBtn.disabled=index>=images.length-1;
+    prevBtn.style.opacity=prevBtn.disabled?'.45':'1';
+    nextBtn.style.opacity=nextBtn.disabled?'.45':'1';
+  }
+
+  function render(){
+    app.innerHTML='';
+    cardBtn.classList.toggle('active', mode==='card');
+    scrollBtn.classList.toggle('active', mode==='scroll');
+    localStorage.setItem('webtoon-mode', mode);
+
+    if(!images.length){
+      status.textContent='이미지를 찾지 못했습니다.';
+      nav.classList.add('hidden');
+      app.innerHTML=`<section class="empty"><strong>images 폴더에 웹툰 이미지를 넣어주세요.</strong><br><br>
+      파일명은 <code>01.png</code>, <code>02.png</code>, <code>03.png</code>처럼 순서대로 지정하면 됩니다.<br>
+      JPG나 WEBP도 사용할 수 있습니다.</section>`;
+      return;
+    }
+
+    if(mode==='card'){
+      index=Math.min(index,images.length-1);
+      const wrap=document.createElement('div');
+      wrap.className='card-wrap';
+      const img=document.createElement('img');
+      img.src=images[index];
+      img.alt=`웹툰 ${index+1}컷`;
+      wrap.appendChild(img); app.appendChild(wrap);
+      status.textContent=`${index+1} / ${images.length}컷`;
+      nav.classList.remove('hidden');
+      localStorage.setItem('webtoon-last-cut', index);
+      updateButtons();
+    } else {
+      const wrap=document.createElement('div');
+      wrap.className='scroll-mode';
+      images.forEach((src,i)=>{const img=document.createElement('img');img.src=src;img.alt=`웹툰 ${i+1}컷`;wrap.appendChild(img)});
+      app.appendChild(wrap);
+      status.textContent=`총 ${images.length}컷`;
+      nav.classList.add('hidden');
+    }
+  }
+
+  function move(delta){index=Math.max(0,Math.min(images.length-1,index+delta));render();window.scrollTo({top:0,behavior:'smooth'});}
+  prevBtn.onclick=()=>move(-1); nextBtn.onclick=()=>move(1);
+  cardBtn.onclick=()=>{mode='card';render()}; scrollBtn.onclick=()=>{mode='scroll';render()};
+  document.addEventListener('keydown',e=>{if(mode!=='card')return;if(e.key==='ArrowLeft')move(-1);if(e.key==='ArrowRight')move(1)});
+  let startX=0;
+  document.addEventListener('touchstart',e=>{startX=e.changedTouches[0].clientX},{passive:true});
+  document.addEventListener('touchend',e=>{if(mode!=='card')return;const dx=e.changedTouches[0].clientX-startX;if(Math.abs(dx)>50)move(dx<0?1:-1)},{passive:true});
+
+  discover().then(found=>{images=found;render()});
+})();
+</script>
+</body>
+</html>
