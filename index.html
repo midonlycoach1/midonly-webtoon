@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="googlebot" content="noindex,nofollow,noarchive">
+<title>중학생활 꿀팁 웹툰</title>
+<style>
+:root{
+  --bg:#f5f6fa; --card:#fff; --text:#22242a; --muted:#777e8c;
+  --line:#e7e9ef; --point:#6d63ff; --point-soft:#efedff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);
+font-family:Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+a{color:inherit;text-decoration:none}
+button{font:inherit}
+.top{
+ position:sticky;top:0;z-index:30;background:rgba(255,255,255,.96);
+ backdrop-filter:blur(10px);border-bottom:1px solid var(--line)
+}
+.top-inner{max-width:840px;margin:auto;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-weight:900;font-size:17px}
+.wrap{max-width:760px;margin:auto;padding:24px 16px 70px}
+.hero{padding:8px 2px 22px}
+.hero h1{font-size:29px;margin:0 0 9px}
+.hero p{color:var(--muted);line-height:1.65;margin:0}
+.episode-list{display:grid;gap:13px}
+.episode{
+ display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid var(--line);
+ border-radius:18px;padding:14px;box-shadow:0 5px 18px rgba(31,35,48,.04);
+ transition:transform .15s ease
+}
+.episode:hover{transform:translateY(-1px)}
+.episode.locked{opacity:.55;pointer-events:none}
+.thumb{width:94px;height:94px;border-radius:14px;object-fit:cover;background:#eceef3;flex:0 0 auto}
+.meta{flex:1;min-width:0}
+.label{font-size:13px;color:var(--point);font-weight:900}
+.title{font-size:17px;font-weight:900;margin-top:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.state{font-size:13px;color:var(--muted);margin-top:8px}
+.badge{font-size:12px;font-weight:800;padding:6px 8px;border-radius:999px;background:var(--point-soft);color:var(--point)}
+.viewer{max-width:920px;margin:auto}
+.viewer-head{
+ position:sticky;top:0;z-index:40;background:rgba(255,255,255,.97);
+ backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:11px 12px
+}
+.viewer-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.viewer-title{font-weight:900;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.controls{display:flex;gap:7px}
+.ctrl{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-weight:800;cursor:pointer}
+.ctrl.active{background:var(--point);color:#fff;border-color:var(--point)}
+.progress{text-align:center;font-size:13px;color:var(--muted);margin-top:7px}
+.stage{min-height:calc(100vh - 100px);display:flex;align-items:center;justify-content:center;padding:14px}
+.stage.scroll{display:block;padding:0}
+.card-img{max-width:100%;max-height:calc(100vh - 145px);object-fit:contain;background:#fff}
+.stage.scroll img{display:block;width:100%;height:auto;margin:0 auto;background:#fff}
+.nav{display:flex;gap:8px;padding:14px}
+.nav a{flex:1;text-align:center;background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;font-weight:800}
+.empty{max-width:520px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:30px 22px;text-align:center}
+.empty h2{margin-top:0}.empty p{color:var(--muted);line-height:1.65}
+.tapzone{position:fixed;top:92px;bottom:0;width:22%;z-index:10}
+.tapzone.left{left:0}.tapzone.right{right:0}
+@media(max-width:600px){
+ .hero h1{font-size:24px}.thumb{width:78px;height:78px}
+ .viewer-title{font-size:14px}.ctrl{font-size:12px;padding:8px}
+ .tapzone{width:18%}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const TOTAL_EPISODES = 13;
+const EXTENSIONS = ["png","jpg","jpeg","webp"];
+const app = document.getElementById("app");
+const query = new URLSearchParams(location.search);
+const episodeNumber = Number(query.get("episode") || 0);
+
+async function exists(url){
+  try{
+    const response = await fetch(url,{cache:"no-store"});
+    return response.ok;
+  }catch{
+    return false;
+  }
+}
+async function readTitle(n){
+  try{
+    const response = await fetch(`episodes/episode${n}/title.txt`,{cache:"no-store"});
+    if(response.ok){
+      const text = (await response.text()).trim();
+      return text || `제${n}화`;
+    }
+  }catch{}
+  return `제${n}화`;
+}
+async function findImage(n,cut){
+  const number = String(cut).padStart(2,"0");
+  for(const ext of EXTENSIONS){
+    const url = `episodes/episode${n}/${number}.${ext}`;
+    if(await exists(url)) return url;
+  }
+  return null;
+}
+async function showHome(){
+  document.title = "중학생활 꿀팁 웹툰";
+  app.innerHTML = `
+  <header class="top"><div class="top-inner"><div class="brand">중학생활 꿀팁 웹툰</div></div></header>
+  <main class="wrap">
+    <section class="hero">
+      <h1>웹툰 회차</h1>
+      <p>이미지가 준비된 회차만 자동으로 공개됩니다.</p>
+    </section>
+    <section id="episodeList" class="episode-list"></section>
+  </main>`;
+  const list = document.getElementById("episodeList");
+  for(let n=1;n<=TOTAL_EPISODES;n++){
+    const [title,thumbnail] = await Promise.all([readTitle(n),findImage(n,1)]);
+    const card = document.createElement(thumbnail ? "a" : "div");
+    card.className = "episode" + (thumbnail ? "" : " locked");
+    if(thumbnail) card.href = `?episode=${n}`;
+    card.innerHTML = `
+      ${thumbnail ? `<img class="thumb" src="${thumbnail}" alt="${n}화 썸네일">` : `<div class="thumb"></div>`}
+      <div class="meta">
+        <div class="label">제${n}화</div>
+        <div class="title">${title}</div>
+        <div class="state">${thumbnail ? "지금 보기" : "01번 이미지를 넣으면 자동 공개"}</div>
+      </div>
+      <span class="badge">${thumbnail ? "공개" : "준비 중"}</span>`;
+    list.appendChild(card);
+  }
+}
+async function showViewer(n){
+  if(n < 1 || n > TOTAL_EPISODES){ location.href="./"; return; }
+  const title = await readTitle(n);
+  const images = [];
+  for(let cut=1;cut<=300;cut++){
+    const image = await findImage(n,cut);
+    if(!image) break;
+    images.push(image);
+  }
+  let current = Math.min(Number(localStorage.getItem(`episode-${n}-cut`) || 0),Math.max(images.length-1,0));
+  let mode = localStorage.getItem("webtoon-view-mode") || "card";
+  document.title = `제${n}화 ${title}`;
+  app.innerHTML = `
+  <div class="viewer">
+    <header class="viewer-head">
+      <div class="viewer-row">
+        <a href="./">← 목록</a>
+        <div class="viewer-title">제${n}화 · ${title}</div>
+        <div class="controls">
+          <button id="cardBtn" class="ctrl">컷 보기</button>
+          <button id="scrollBtn" class="ctrl">세로 보기</button>
+        </div>
+      </div>
+      <div id="progress" class="progress"></div>
+    </header>
+    <main id="stage" class="stage"></main>
+    <div id="leftZone" class="tapzone left"></div>
+    <div id="rightZone" class="tapzone right"></div>
+    <nav class="nav">
+      <a href="${n>1?`?episode=${n-1}`:"./"}">← 이전화</a>
+      <a href="./">목록</a>
+      <a href="${n<TOTAL_EPISODES?`?episode=${n+1}`:"./"}">다음화 →</a>
+    </nav>
+  </div>`;
+  const stage = document.getElementById("stage");
+  const progress = document.getElementById("progress");
+  const cardBtn = document.getElementById("cardBtn");
+  const scrollBtn = document.getElementById("scrollBtn");
+
+  function save(){
+    localStorage.setItem(`episode-${n}-cut`,String(current));
+    localStorage.setItem("last-read-episode",String(n));
+  }
+  function render(){
+    cardBtn.classList.toggle("active",mode==="card");
+    scrollBtn.classList.toggle("active",mode==="scroll");
+    if(!images.length){
+      stage.className="stage";
+      stage.innerHTML=`<div class="empty"><h2>아직 이미지가 없습니다</h2>
+      <p><b>episodes/episode${n}</b> 폴더에 01.png, 02.png처럼 순서대로 넣어주세요.</p></div>`;
+      progress.textContent="";
+      return;
+    }
+    if(mode==="card"){
+      stage.className="stage";
+      stage.innerHTML=`<img class="card-img" src="${images[current]}" alt="${current+1}번째 컷">`;
+      progress.textContent=`${current+1} / ${images.length}`;
+    }else{
+      stage.className="stage scroll";
+      stage.innerHTML=images.map((url,i)=>`<img src="${url}" alt="${i+1}번째 컷" loading="${i<2?"eager":"lazy"}">`).join("");
+      progress.textContent=`총 ${images.length}컷`;
+    }
+  }
+  function next(){
+    if(mode==="card" && current<images.length-1){ current++; save(); render(); }
+  }
+  function previous(){
+    if(mode==="card" && current>0){ current--; save(); render(); }
+  }
+  cardBtn.onclick=()=>{mode="card";localStorage.setItem("webtoon-view-mode",mode);render();scrollTo(0,0)};
+  scrollBtn.onclick=()=>{mode="scroll";localStorage.setItem("webtoon-view-mode",mode);render();scrollTo(0,0)};
+  document.getElementById("leftZone").onclick=previous;
+  document.getElementById("rightZone").onclick=next;
+  document.addEventListener("keydown",event=>{
+    if(event.key==="ArrowRight") next();
+    if(event.key==="ArrowLeft") previous();
+  });
+  let startX=0;
+  stage.addEventListener("touchstart",event=>startX=event.changedTouches[0].screenX,{passive:true});
+  stage.addEventListener("touchend",event=>{
+    const distance=event.changedTouches[0].screenX-startX;
+    if(Math.abs(distance)>45) distance<0 ? next() : previous();
+  },{passive:true});
+  save();
+  render();
+}
+episodeNumber ? showViewer(episodeNumber) : showHome();
+</script>
+</body>
+</html>
