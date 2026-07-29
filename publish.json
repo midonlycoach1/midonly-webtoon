@@ -2,54 +2,40 @@
   "_guide": "published가 true인 회차만 사이트에 공개됩니다. publishedAt 기준 7일 동안 NEW가 표시됩니다.",
   "1": {
     "published": true,
-    "publishedAt": "2026-07-29"
   },
   "2": {
     "published": true,
-    "publishedAt": "2026-07-29"
   },
   "3": {
     "published": false,
-    "publishedAt": null
   },
   "4": {
     "published": false,
-    "publishedAt": null
   },
   "5": {
     "published": false,
-    "publishedAt": null
   },
   "6": {
     "published": false,
-    "publishedAt": null
   },
   "7": {
     "published": false,
-    "publishedAt": null
   },
   "8": {
     "published": false,
-    "publishedAt": null
   },
   "9": {
     "published": false,
-    "publishedAt": null
   },
   "10": {
     "published": false,
-    "publishedAt": null
   },
   "11": {
     "published": false,
-    "publishedAt": null
   },
   "12": {
     "published": false,
-    "publishedAt": null
   },
   "13": {
     "published": false,
-    "publishedAt": null
-  }
 }
