@@ -89,7 +89,7 @@ async function showHome(){
     </header>
     <main class="home">
       <h1>웹툰 회차</h1>
-      <p>공개된 회차만 표시됩니다.</p>
+      <p>매주 수요일 공개 (총 13부작)</p>
       <section id="episodeList" class="episode-list"></section>
     </main>
   `;
